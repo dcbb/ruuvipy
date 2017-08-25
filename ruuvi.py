@@ -6,6 +6,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Cairo')
 import dataset
+import sys
 
 if True:
     plt.style.use('ggplot')
@@ -13,7 +14,7 @@ else:
     plt.xkcd()
 
 
-print('running')
+print('running, Python version', sys.version)
 
 if False:
     # List of macs of sensors which data will be collected

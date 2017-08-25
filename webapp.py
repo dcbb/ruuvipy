@@ -21,20 +21,20 @@ def n_pretty_hex_colors(n):
 
 
 def sql_date_filter(filter_type):
-    assert filter_type[0].isdigit(), f'Filter {filter_type} not recognized. Not starting with a single digit number?'
+    assert filter_type[0].isdigit(), 'Filter {filter_type} not recognized. Not starting with a single digit number?'.format(filter_type=filter_type)
     n = int(filter_type[0])
     unit = filter_type[1]
     if unit=='d':
-        offset = f'-{n-1} days'
+        offset = '-%d days' % (n-1)
     elif unit=='w':
-        offset = f'-{n*7-1} days'
+        offset = '-%d days' % (n*7-1)
     elif unit=='m':
-        offset = f'-{n} months'
+        offset = '-%d months' % n
     else:
-        raise ValueError(f'Filter unit in {filter_type} not recognized.')
+        raise ValueError('Filter unit in {filter_type} not recognized.').format(filter_type=filter_type)
     print('using offset', offset)
     # TODO replace date with 'now'
-    return f"datetime(t) >= datetime('2017-12-20', '{offset}')"
+    return "datetime(t) >= datetime('2017-12-20', '{offset}')".format(offset=offset)
 
 
 def to_day_level(data):
@@ -61,9 +61,9 @@ def root_ui():
 
 @app.route('/metric/<metric>')
 def metric_ui(metric):
-    sql = f"""SELECT timestamp AS t, sensor_name, {metric}
+    sql = """SELECT timestamp AS t, sensor_name, {metric}
               FROM measurements 
-              WHERE [date_filter]"""
+              WHERE [date_filter]""".format(metric=metric)
     return render_data_ui(sql, 
                           metrics=[metric],
                           show_back_to_all=True)
@@ -71,10 +71,10 @@ def metric_ui(metric):
 
 @app.route('/sensor/<sensor_name>')
 def sensor_ui(sensor_name):
-    sql = f"""SELECT timestamp AS t, sensor_name, temperature, humidity, pressure
+    sql = """SELECT timestamp AS t, sensor_name, temperature, humidity, pressure
               FROM measurements 
               WHERE [date_filter]
-                AND sensor_name='{sensor_name}' """
+                AND sensor_name='{sensor_name}' """.format(sensor_name=sensor_name)
     return render_data_ui(sql, 
                           metrics=['temperature', 'humidity', 'pressure'],
                           show_back_to_all=True)
@@ -98,7 +98,7 @@ def render_data_ui(sql,
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. '\
-        + f'Metrics: {metrics}. Data columns: {list(all_data.columns)}'
+        + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metric, columns=list(all_data.columns))
 
     # get names of ALL sensors to allow for consistent coloring, regardless of the sensors currently displayed
     all_sensors = [r['sensor_name'] for r in db.query("SELECT DISTINCT sensor_name FROM measurements ORDER BY sensor_name")]   

@@ -132,16 +132,8 @@ def process_records(records):
             index='timestamp', 
             columns='Sensor', 
             values=metric)
-        
-        if True: # plot to SVG
-            fig = plt.figure()
-            ax = df_metric.plot(title=capitalize(metric), figsize=(4,3))
-            fig.patch.set_facecolor('red')
-            plt.savefig(f"static/{metric}.svg", transparent=False)
-            print('exported to svg')
-
         if True: # export CSV
-            df_metric.to_csv(f"static/{metric}.csv")
+            df_metric.to_csv("static/%s.csv" % metric)
             print('exported to csv')
     print('DONE', len(records), df.shape)
 

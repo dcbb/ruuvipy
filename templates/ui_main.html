@@ -1,0 +1,123 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>RUUVI sensor hub</title>
+
+  <script type="text/javascript" src="{{url_for('static', filename='dygraph.min.js')}}"></script>
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed" rel="stylesheet">
+
+  <link href="{{url_for('static', filename='mdi/css/materialdesignicons.min.css')}}" media="all" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    body {
+        font-family: 'Roboto Condensed', sans-serif;
+        background: white;
+        color: gray;
+    }
+    a {
+        color: gray;
+        text-decoration: none;
+    }
+    h1 {
+        font-size: x-large;
+        text-align: left;   
+        color: gray;
+        width: 480px;
+    }
+    .sensor_name {
+        font-weight: bold;  
+        text-align: left;   
+        padding: 5px 10px 5px 5px;
+    }
+    .metric_name {
+        text-align: right;  
+        padding: 5px 10px 0px 0px;
+    }
+    .metric_value {
+        font-weight: bold;  
+        font-size: x-large;
+        text-align: right;  
+        padding: 0px 10px 5px 5px;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<table border=0 width={{ui_width}}>
+    <tr>
+        <td></td>
+        {% for metric in metrics %}
+            <td class="metric_name">
+                <a href="/metric/{{metric}}"><i class="mdi mdi-{{metric_icons[metric]}} mdi-24px"></i></a>
+            </td>
+        {% endfor %}
+    </tr>
+    {% for record in latest_data %}
+        <tr style="color: {{record.color | safe}}">
+            <td class="sensor_name">    
+                <a href="/sensor/{{record.sensor_name}}" style="color: {{record.color | safe}}">
+                    <b>{{record.sensor_name}}</b>
+                </a>
+            </td>
+            {% for metric in metrics %}
+                <td class="metric_value">{{record[metric] | round(1)}}{{metric_units[metric]}}</td>
+            {% endfor %}
+        </tr>
+    {% endfor %}
+</table>
+
+{% if show_back_to_all %}
+    <div style="text-align: right; max-width: {{ui_width - 10}}px; padding-top: 10px; padding-bottom: 5px">
+        <a href="/">
+            <i class="mdi mdi-arrow-left mdi-24px"></i>
+        </a>
+    </div>
+{% endif %}
+
+<div style="text-align: right; max-width: {{ui_width-10}}px; padding-top: 25px; padding-bottom: 5px">
+    <a href="?range=3d">3 days &nbsp; </a>
+    <a href="?range=1w">1 week &nbsp; </a>
+    <a href="?range=2w">2 weeks &nbsp; </a>
+    <a href="?range=1m">1 month &nbsp; </a>
+    <a href="?range=3m">3 months &nbsp; </a>
+    <i class="mdi mdi-calendar-range mdi-24px"></i> <br>
+</div>
+
+{% for data in graph_data %}
+    <p> 
+        <a href="/metric/{{data.metric}}">
+            <i class="mdi mdi-{{metric_icons[data.metric]}} mdi-36px"></i>
+            {{data.metric}}
+        </a>
+    </p>
+    <div id="graphdiv_{{data.metric}}"></div>
+    <script type="text/javascript">
+      g = new Dygraph(
+        document.getElementById("graphdiv_{{data.metric}}"),
+        {{data.csv | safe}},
+        {width:  {{ui_width}},
+         height: 200,
+         strokeWidth: 2,
+         strokeBorderWidth: 1,
+         series: {{series_options | tojson | safe}}
+        }  
+      );
+    </script>
+{% endfor %}
+
+{% if show_back_to_all %}
+    <div style="text-align: right; max-width: {{ui_width - 10}}px; padding-top: 10; padding-bottom: 5px">
+        <a href="/">
+            <i class="mdi mdi-arrow-left mdi-24px"></i>
+        </a>
+    </div>
+{% endif %}
+
+</body>
+</html>

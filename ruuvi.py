@@ -30,7 +30,8 @@ if False:
 if False:
     def handle_data(data_list):
         mac, data = data_list
-        record = {'MAC': mac, 'timestamp': datetime.now(), **data}
+        record = {'MAC': mac, 'timestamp': datetime.now()}
+        record.update(data)
         print(record)
         print()
 
@@ -51,7 +52,7 @@ def mock_timeseries(n, day_mid, day_range, largescale_range):
     
     def largescale_variation(scale=60, base=7):
         B = np.array([np.cos( (x / (scale*samples_per_day) * 2*np.pi) * np.random.normal(loc=1, scale=0.3) ) for _ in range(base)])
-        v = B.T @ (2*np.random.random(size=base) - 1)
+        v = B.T.dot(2*np.random.random(size=base) - 1)
         return v / abs(v).max() 
 
     def map_to_range(x, mid, half_width):
@@ -152,8 +153,8 @@ def get_sensor_data(timeout, mock=True):
             record = {'sensor_MAC': mac, 
                       'sensor_name': mac_to_name[mac], 
                       'timestamp': t_str, 
-                      'missing': False,
-                      **datas[mac]}
+                      'missing': False}
+            record.update(datas[mac])
         else:
             record = {'sensor_MAC': mac, 
                       'sensor_name': mac_to_name[mac], 

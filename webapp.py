@@ -95,14 +95,16 @@ def render_data_ui(sql,
 
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
-    logging.debug('query and dataframe construction')
-    all_data = pd.DataFrame([r for r in db.query(sql)])
+    print('query')
+    db_result = db.query(sql)
+    print('dataframe construction')
+    all_data = pd.DataFrame([r for r in db_result])
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. '\
         + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metric, columns=list(all_data.columns))
 
-    logging.debug('data transformation')
+    print('data transformation')
     # get names of ALL sensors to allow for consistent coloring, regardless of the sensors currently displayed
     all_sensors = [r['sensor_name'] for r in db.query("SELECT DISTINCT sensor_name FROM measurements ORDER BY sensor_name")]   
     sensor_colors = {sensor: color for sensor, color in zip(all_sensors, n_pretty_hex_colors(len(all_sensors)))}
@@ -145,7 +147,7 @@ def render_data_ui(sql,
         series_options = {sensor_name : {'color': sensor_colors[sensor_name]} for sensor_name in current_sensors}
 
 
-    logging.debug('call to render_template')
+    print('call to render_template')
     return render_template(
         'ui_main.html', 
         metrics=metrics,

@@ -114,10 +114,12 @@ def render_data_ui(sql,
 
 
     # latest single data point for each metric
-    latest_data =[ {'sensor_name': sensor, 
-                    'color': sensor_colors[sensor],
-                    **{metric: data_per_metric[metric][sensor].iloc[-1] for metric in metrics}} 
-                  for sensor in current_sensors ]
+    latest_data = []
+    for sensor in current_sensors:
+        record = {'sensor_name': sensor, 
+                  'color': sensor_colors[sensor]}
+        record.update({metric: data_per_metric[metric][sensor].iloc[-1] for metric in metrics}) 
+        latest_data.append(record)
 
 
     # history for each metric, CSV formatted to inject into dygraph 

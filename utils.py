@@ -1,7 +1,18 @@
-def python_dict_to_js(d):
-    print(d)
+from datetime import datetime
+import logging
 
-if __name__=='__main__':
-    python_dict_to_js({'a': 'string', 
-                       'b': {'whatever': 1, 'list': [1,2,3]}
-                      })
+
+class Timer:
+
+    def __init__(self):
+        self.t = None
+        self.reset()
+
+    def report(self, message):
+        delta_t = datetime.now() - self.t
+        logging.debug("{message}, time passed: {dt}".format(message=message, dt=delta_t))
+        self.t = datetime.now()
+
+    def reset(self, message=''):
+        logging.debug("Timer reset. " + message)
+        self.t = datetime.now()

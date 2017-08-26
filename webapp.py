@@ -3,10 +3,12 @@ import pandas as pd
 import dataset
 import config
 import logging
+import datetime
 
 pretty_colors = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"]
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def dataframe_for_dygraph(df):
@@ -80,10 +82,21 @@ def sensor_ui(sensor_name):
                           metrics=['temperature', 'humidity', 'pressure'],
                           show_back_to_all=True)
 
+# this is not pretty...
+t = datetime.datetime.now()
 
 def render_data_ui(sql,
                    metrics, 
                    show_back_to_all=False):
+
+    def time_passed():
+        global t
+        now = datetime.datetime.now()
+        passed = now - t
+        t = now
+        return passed
+    def log_with_timing(message):
+        logging.debug(message + ', ' + str(time_passed()))
 
     assert len(metrics)>0, 'No metrics specified to render!'
 
@@ -93,18 +106,19 @@ def render_data_ui(sql,
     if not time_range:
         time_range = '1w'
 
+    log_with_timing('STARTING...')
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
-    print('query')
+    log_with_timing('query')
     db_result = db.query(sql)
-    print('dataframe construction')
+    log_with_timing('dataframe construction')
     all_data = pd.DataFrame([r for r in db_result])
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. '\
         + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metric, columns=list(all_data.columns))
 
-    print('data transformation')
+    log_with_timing('data transformation')
     # get names of ALL sensors to allow for consistent coloring, regardless of the sensors currently displayed
     all_sensors = [r['sensor_name'] for r in db.query("SELECT DISTINCT sensor_name FROM measurements ORDER BY sensor_name")]   
     sensor_colors = {sensor: color for sensor, color in zip(all_sensors, n_pretty_hex_colors(len(all_sensors)))}
@@ -147,7 +161,7 @@ def render_data_ui(sql,
         series_options = {sensor_name : {'color': sensor_colors[sensor_name]} for sensor_name in current_sensors}
 
 
-    print('call to render_template')
+    log_with_timing('call to render_template')
     return render_template(
         'ui_main.html', 
         metrics=metrics,

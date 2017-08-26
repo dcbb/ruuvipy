@@ -111,7 +111,7 @@ def render_data_ui(sql,
     db_result = db.query(sql)
     timer.report('db connect and query')
 
-    all_data = pd.DataFrame([r for r in db_result])
+    all_data = pd.read_sql(sql, con=db.engine)
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. ' \

@@ -102,7 +102,7 @@ def render_data_ui(sql,
 
     time_range = request.args.get('range')
     if not time_range:
-        time_range = '1w'
+        time_range = '3d'
 
     timer.reset('STARTING...')
     db = dataset.connect('sqlite:///measurements.db')

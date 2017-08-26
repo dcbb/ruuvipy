@@ -108,15 +108,12 @@ def render_data_ui(sql,
     db = dataset.connect('sqlite:///measurements.db')
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
-    db_result = db.query(sql)
-    timer.report('db connect and query')
-
     all_data = pd.read_sql(sql, con=db.engine)
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. ' \
         + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metrics, columns=list(all_data.columns))
-    timer.report('data to dataframe')
+    timer.report('query db into dataframe')
 
     # get names of ALL sensors to allow for consistent coloring, regardless of the sensors currently displayed
     all_sensors = [r['sensor_name'] for r in

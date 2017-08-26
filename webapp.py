@@ -5,7 +5,9 @@ import config
 import logging
 import datetime
 
-pretty_colors = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e", "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262", "#5574a6", "#3b3eac"]
+pretty_colors = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e",
+                 "#316395", "#994499", "#22aa99", "#aaaa11", "#6633cc", "#e67300", "#8b0707", "#651067", "#329262",
+                 "#5574a6", "#3b3eac"]
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -24,17 +26,19 @@ def n_pretty_hex_colors(n):
 
 
 def sql_date_filter(filter_type):
-    assert filter_type[0].isdigit(), 'Filter {filter_type} not recognized. Not starting with a single digit number?'.format(filter_type=filter_type)
+    assert filter_type[
+        0].isdigit(), 'Filter {filter_type} not recognized. Not starting with a single digit number?'.format(
+        filter_type=filter_type)
     n = int(filter_type[0])
     unit = filter_type[1]
-    if unit=='d':
-        offset = '-%d days' % (n-1)
-    elif unit=='w':
-        offset = '-%d days' % (n*7-1)
-    elif unit=='m':
+    if unit == 'd':
+        offset = '-%d days' % (n - 1)
+    elif unit == 'w':
+        offset = '-%d days' % (n * 7 - 1)
+    elif unit == 'm':
         offset = '-%d months' % n
     else:
-        raise ValueError('Filter unit in {filter_type} not recognized.').format(filter_type=filter_type)
+        raise ValueError('Filter unit in {filter_type} not recognized.'.format(filter_type=filter_type))
     print('using offset', offset)
     # TODO replace date with 'now'
     return "datetime(t) >= datetime('2017-12-20', '{offset}')".format(offset=offset)
@@ -58,7 +62,7 @@ def root_ui():
              FROM measurements 
              WHERE [date_filter] """
 
-    return render_data_ui(sql=sql, 
+    return render_data_ui(sql=sql,
                           metrics=['temperature', 'humidity', 'pressure'])
 
 
@@ -67,7 +71,7 @@ def metric_ui(metric):
     sql = """SELECT timestamp AS t, sensor_name, {metric}
               FROM measurements 
               WHERE [date_filter]""".format(metric=metric)
-    return render_data_ui(sql, 
+    return render_data_ui(sql,
                           metrics=[metric],
                           show_back_to_all=True)
 
@@ -78,27 +82,29 @@ def sensor_ui(sensor_name):
               FROM measurements 
               WHERE [date_filter]
                 AND sensor_name='{sensor_name}' """.format(sensor_name=sensor_name)
-    return render_data_ui(sql, 
+    return render_data_ui(sql,
                           metrics=['temperature', 'humidity', 'pressure'],
                           show_back_to_all=True)
+
 
 # this is not pretty...
 t = datetime.datetime.now()
 
-def render_data_ui(sql,
-                   metrics, 
-                   show_back_to_all=False):
 
+def render_data_ui(sql,
+                   metrics,
+                   show_back_to_all=False):
     def time_passed():
         global t
         now = datetime.datetime.now()
         passed = now - t
         t = now
         return passed
+
     def log_with_timing(message):
         logging.debug(message + ', ' + str(time_passed()))
 
-    assert len(metrics)>0, 'No metrics specified to render!'
+    assert len(metrics) > 0, 'No metrics specified to render!'
 
     db = dataset.connect('sqlite:///measurements.db')
 
@@ -115,15 +121,17 @@ def render_data_ui(sql,
     all_data = pd.DataFrame([r for r in db_result])
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
-        'The data returned is not consistent with the specified metrics. '\
-        + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metric, columns=list(all_data.columns))
+        'The data returned is not consistent with the specified metrics. ' \
+        + 'Metrics: {metrics}. Data columns: {columns}'.format(metrics=metrics, columns=list(all_data.columns))
 
     log_with_timing('data transformation')
     # get names of ALL sensors to allow for consistent coloring, regardless of the sensors currently displayed
-    all_sensors = [r['sensor_name'] for r in db.query("SELECT DISTINCT sensor_name FROM measurements ORDER BY sensor_name")]   
+    all_sensors = [r['sensor_name'] for r in
+                   db.query("SELECT DISTINCT sensor_name FROM measurements ORDER BY sensor_name")]
     sensor_colors = {sensor: color for sensor, color in zip(all_sensors, n_pretty_hex_colors(len(all_sensors)))}
-    
-    data_per_metric = {metric: all_data.pivot_table(index='t', columns='sensor_name', values=metric) for metric in metrics}
+
+    data_per_metric = {metric: all_data.pivot_table(index='t', columns='sensor_name', values=metric) for metric in
+                       metrics}
 
     # Names of the sensors currently displayed.
     current_sensors = data_per_metric[metrics[0]].columns
@@ -131,24 +139,22 @@ def render_data_ui(sql,
     # determine whether to aggregate data to a day level
     aggregate_to_day_level = data_per_metric[metrics[0]].shape[0] > config.aggregate_daily_row_threshold
 
-
     # latest single data point for each metric
     latest_data = []
     for sensor in current_sensors:
-        record = {'sensor_name': sensor, 
+        record = {'sensor_name': sensor,
                   'color': sensor_colors[sensor]}
-        record.update({metric: data_per_metric[metric][sensor].iloc[-1] for metric in metrics}) 
+        record.update({metric: data_per_metric[metric][sensor].iloc[-1] for metric in metrics})
         latest_data.append(record)
 
-
-    # history for each metric, CSV formatted to inject into dygraph 
+    # history for each metric, CSV formatted to inject into dygraph
     def csv_data_for_metric(metric):
         if aggregate_to_day_level:
             return dataframe_for_dygraph(to_day_level(data_per_metric[metric]))
         else:
             return dataframe_for_dygraph(data_per_metric[metric])
-    graph_data = [ {'metric': metric, 'csv': csv_data_for_metric(metric)} for metric in metrics ]
 
+    graph_data = [{'metric': metric, 'csv': csv_data_for_metric(metric)} for metric in metrics]
 
     # graph options per series are different when data is aggregated on a day level - then we need to
     # differentiate the min and max series visually
@@ -156,14 +162,14 @@ def render_data_ui(sql,
         series_options = {}
         for sensor_name in current_sensors:
             series_options.update({'max ' + sensor_name: {'color': sensor_colors[sensor_name]}})
-            series_options.update({'min ' + sensor_name: {'color': sensor_colors[sensor_name], 'strokePattern': [3,3]}})
+            series_options.update(
+                {'min ' + sensor_name: {'color': sensor_colors[sensor_name], 'strokePattern': [3, 3]}})
     else:
-        series_options = {sensor_name : {'color': sensor_colors[sensor_name]} for sensor_name in current_sensors}
-
+        series_options = {sensor_name: {'color': sensor_colors[sensor_name]} for sensor_name in current_sensors}
 
     log_with_timing('call to render_template')
     return render_template(
-        'ui_main.html', 
+        'ui_main.html',
         metrics=metrics,
         latest_data=latest_data,
         graph_data=graph_data,
@@ -174,4 +180,3 @@ def render_data_ui(sql,
         time_range=time_range,
         series_options=series_options
     )
-

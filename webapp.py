@@ -105,7 +105,7 @@ def render_data_ui(sql,
         time_range = '3d'
 
     timer.reset('STARTING...')
-    db = dataset.connect('sqlite:///measurements.db')
+    db = dataset.connect('sqlite:///measurements-mock.db')
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
     all_data = pd.read_sql(sql, con=db.engine)

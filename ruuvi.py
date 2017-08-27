@@ -181,7 +181,7 @@ def repeat(freq_sec, function, *args, **kwargs):
 def func():
     print('called')
 
-db = dataset.connect('sqlite:///measurements.db')
+db = dataset.connect('sqlite:///measurements-mock.db')
 measurements = db['measurements']
 
 repeat(0, get_sensor_data, timeout=update_every_n_sec*0.75)

@@ -43,7 +43,7 @@ def sql_date_filter(filter_type):
         raise ValueError('Filter unit in {filter_type} not recognized.'.format(filter_type=filter_type))
     print('using offset', offset)
     # TODO replace date with 'now'
-    return "datetime(t) >= datetime('2017-12-20', '{offset}')".format(offset=offset)
+    return "datetime(t) >= datetime('now', '{offset}')".format(offset=offset)
 
 
 def to_day_level(data):
@@ -106,9 +106,15 @@ def render_data_ui(sql,
 
     timer.reset('STARTING...')
     db = dataset.connect('sqlite:///measurements-mock.db')
+
+    print(db['measurements'].columns)
+
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
     all_data = pd.read_sql(sql, con=db.engine)
+
+    print(all_data.head())
+
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. ' \

@@ -7,7 +7,7 @@ class SensorMock:
         self.mock_sample_period = 1  # minutes
         self.mock_samples_per_day = (24 * 60) / self.mock_sample_period
         self.mock_days = 21
-        self.mock_max_iter = self.mock_days * self.mock_samples_per_day
+        self.max_iter = self.mock_days * self.mock_samples_per_day
         self.mac_to_name = mac_to_name
 
     def mock_timeseries(self, n, day_mid, day_range, largescale_range):
@@ -42,7 +42,7 @@ class SensorMock:
         """
         from itertools import count, cycle
 
-        n = self.mock_max_iter
+        n = self.max_iter
         temp = {
             mac: self.mock_timeseries(int(n),
                                       day_mid=15 + np.random.normal(scale=5),
@@ -70,6 +70,3 @@ class SensorMock:
                          'temperature': temp[mac][i],
                          'humidity': humidity[mac][i]} for mac in self.mac_to_name}
 
-
-mock_data = mock_data_generator()
-mock_time = mock_time_generator()

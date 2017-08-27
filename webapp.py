@@ -4,7 +4,7 @@ import dataset
 import config
 import logging
 import datetime
-
+import os
 from utils import Timer
 
 pretty_colors = ["#3366cc", "#dc3912", "#ff9900", "#109618", "#990099", "#0099c6", "#dd4477", "#66aa00", "#b82e2e",
@@ -105,16 +105,12 @@ def render_data_ui(sql,
         time_range = '3d'
 
     timer.reset('STARTING...')
-    db = dataset.connect('sqlite:///measurements-mock.db')
-
-    print(db['measurements'].columns)
-
+    db_name = os.getenv('RUUVI_DB', default='sqlite:///measurements-mock.db')
+    logging.debug('Using database %s' % db_name)
+    db = dataset.connect(db_name)
     # inject date filter into SQL query
     sql = sql.replace('[date_filter]', sql_date_filter(time_range))
     all_data = pd.read_sql(sql, con=db.engine)
-
-    print(all_data.head())
-
     # make sure returned data is consistent with specified metrics
     assert all(metric in all_data.columns for metric in metrics), \
         'The data returned is not consistent with the specified metrics. ' \

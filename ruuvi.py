@@ -80,7 +80,7 @@ if __name__ == '__main__':
         mac_to_name = config.mac_to_name
         max_iter = None
         get_time = datetime.datetime.now
-        get_datas = lambda: RuuviTagSensor.get_data_for_sensors(mac_to_name, timeout=interval*0.75)
+        get_datas = lambda: RuuviTagSensor.get_data_for_sensors(mac_to_name, interval*0.75)
 
     db = dataset.connect(db_name)
     measurements = db['measurements']

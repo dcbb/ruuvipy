@@ -20,7 +20,7 @@ if False:
     RuuviTagSensor.get_datas(handle_data)
 
 
-def collect_and_store(mac_to_name, get_datas, get_time):
+def collect_and_store(mac_to_name, get_datas, get_time, log_data=False):
     t = get_time()
     datas = get_datas()
     t_str = t.strftime('%Y-%m-%d %H:%M:%S')
@@ -33,29 +33,37 @@ def collect_and_store(mac_to_name, get_datas, get_time):
                   'day': t.day}
         if mac in datas:
             record.update(datas[mac])
+        if log_data:
+            print(t, record)
         measurements.insert(record)
 
 
-def repeat(period_sec, max_iter, func, *args, **kwargs):
+def repeat(interval_sec, max_iter, func, *args, **kwargs):
     from itertools import count
     starttime = time.time()
     for i in count():
         if i % 1000 == 0:
             print('collected %d samples' % i)
         func(*args, **kwargs)
-        if period_sec > 0:
-            time.sleep(period_sec - ((time.time() - starttime) % period_sec))
+        if interval_sec > 0:
+            time.sleep(interval_sec - ((time.time() - starttime) % interval_sec))
         if max_iter and i >= max_iter:
             return
 
 
 if __name__ == '__main__':
-    mock = True
 
-    if mock:
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mock', action='store_true', help='generate a database of mock sensor values')
+    parser.add_argument('--interval', default=60, help='sensor readout interval (seconds), default 60')
+    args = parser.parse_args()
+
+    if args.mock:
         from sensor_mock import SensorMock
 
-        period_sec = 0
+        interval = 0
         db_name = 'sqlite:///measurements-mock.db'
         mac_to_name = {'dummy_mac_1': 'First',
                        'dummy_mac_2': 'Second',
@@ -67,7 +75,7 @@ if __name__ == '__main__':
         get_datas = lambda: next(mock_datas)
         get_time = lambda: next(mock_time)
     else:
-        period_sec = 60
+        interval = args.interval
         db_name = 'sqlite:///measurements.db'
         mac_to_name = config.mac_to_name
         max_iter = None
@@ -77,6 +85,6 @@ if __name__ == '__main__':
     db = dataset.connect(db_name)
     measurements = db['measurements']
 
-    repeat(period_sec,
+    repeat(interval,
            max_iter,
-           func=lambda: collect_and_store(mac_to_name, get_datas, get_time))
+           func=lambda: collect_and_store(mac_to_name, get_datas, get_time, log_data=not args.mock))

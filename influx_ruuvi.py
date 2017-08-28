@@ -22,7 +22,7 @@ class DataCollector:
 
         if mock:
             import sensor_mock
-            self.mock = sensor_mock.SensorMock(mock_days=mock_days)
+            self.mock = sensor_mock.SensorMock(mock_days=int(mock_days))
             self._mock_time = self.mock.mock_time_generator()
             self._mock_datas = self.mock.mock_data_generator()
             self.max_iterations = self.mock.max_iter

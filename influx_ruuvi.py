@@ -6,7 +6,7 @@ import yaml
 
 
 class DataCollector:
-    def __init__(self, influx_client, sensor_yaml, timeout, mock=False):
+    def __init__(self, influx_client, sensor_yaml, timeout, mock=False, mock_days=3):
         self.influx_client = influx_client
         self.sensor_yaml = sensor_yaml
         self.timeout = timeout
@@ -22,7 +22,7 @@ class DataCollector:
 
         if mock:
             import sensor_mock
-            self.mock = sensor_mock.SensorMock(mock_days=30)
+            self.mock = sensor_mock.SensorMock(mock_days=mock_days)
             self._mock_time = self.mock.mock_time_generator()
             self._mock_datas = self.mock.mock_data_generator()
             self.max_iterations = self.mock.max_iter
@@ -46,7 +46,8 @@ class DataCollector:
         #            'temperature']
         metrics = ['pressure',
                    'humidity',
-                   'temperature']
+                   'temperature',
+                   'battery']
 
         if self.mock:
             sensors = self.mock.mac_to_name
@@ -107,6 +108,8 @@ if __name__ == '__main__':
                         help='print sensor readout of all discovered Ruuvis')
     parser.add_argument('--mock', action='store_true',
                         help='generate a database of mock sensor values')
+    parser.add_argument('--mock_days', action='store_true',
+                        help='days of data to mock')
     parser.add_argument('--interval', default=60,
                         help='sensor readout interval (seconds), default 60')
     parser.add_argument('--sensors', default='sensors.yml',
@@ -132,7 +135,8 @@ if __name__ == '__main__':
     collector = DataCollector(influx_client=client,
                               sensor_yaml='sensors.yml',
                               timeout=int(0.75*interval),
-                              mock=args.mock)
+                              mock=args.mock,
+                              mock_days=args.mock_days)
     repeat(interval,
            collector.max_iterations,
            func=lambda: collector.collect_and_store())

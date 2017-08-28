@@ -108,8 +108,7 @@ if __name__ == '__main__':
                         help='print sensor readout of all discovered Ruuvis')
     parser.add_argument('--mock', action='store_true',
                         help='generate a database of mock sensor values')
-    parser.add_argument('--mock_days', action='store_true',
-                        help='days of data to mock')
+    parser.add_argument('--mock_days', help='days of data to mock')
     parser.add_argument('--interval', default=60,
                         help='sensor readout interval (seconds), default 60')
     parser.add_argument('--sensors', default='sensors.yml',

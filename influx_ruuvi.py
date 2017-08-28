@@ -72,10 +72,10 @@ class DataCollector:
             for mac in sensors
         ]
 
+        if not self.influx_client.write_points(json_body):
+            print('not written!')
         if self.log_data:
             print(t, json_body)
-
-        self.influx_client.write_points(json_body)
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):

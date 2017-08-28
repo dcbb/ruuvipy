@@ -1,25 +1,21 @@
 from ruuvitag_sensor.ruuvi import RuuviTagSensor
-from datetime import datetime
 import dataset
-import sys
 import time
-import datetime
-import config
-
-
-# TODO: put name mac in a YAML file, reload every N ticks so we dont have to restart the server when we have a new sensor
+from datetime import datetime
+import yaml
+from os import path
 
 
 def discover_sensors():
     seen_macs = set()
-    n_macs_seen = 0
+    n_macs_last_seen = 0
 
     def handle_data(data_list):
-        global n_macs_seen
+        global n_macs_last_seen
         mac, data = data_list
         seen_macs.add(mac)
-        if len(seen_macs) != n_macs_seen:
-            n_macs_seen = len(seen_macs)
+        if len(seen_macs) != n_macs_last_seen:
+            n_macs_last_seen = len(seen_macs)
             print('Seeing RUUVI MACS:')
             print('\n'.join(sorted(seen_macs)))
 
@@ -29,7 +25,7 @@ def discover_sensors():
 def flood_data():
     def handle_data(data_list):
         mac, data = data_list
-        record = {'MAC': mac, 'timestamp': datetime.datetime.now()}
+        record = {'MAC': mac, 'timestamp': datetime.now()}
         record.update(data)
         print(record)
         print()
@@ -37,22 +33,58 @@ def flood_data():
     RuuviTagSensor.get_datas(handle_data)
 
 
-def collect_and_store(mac_to_name, get_datas, get_time, log_data=False):
-    t = get_time()
-    datas = get_datas()
-    t_str = t.strftime('%Y-%m-%d %H:%M:%S')
-    for mac in mac_to_name:
-        record = {'sensor_MAC': mac,
-                  'sensor_name': mac_to_name[mac],
-                  'timestamp': t_str,
-                  'year': t.year,
-                  'month': t.month,
-                  'day': t.day}
-        if mac in datas:
-            record.update(datas[mac])
-        if log_data:
-            print(t, record)
-        measurements.insert(record)
+class DataCollector:
+    def __init__(self, database_table, sensor_yaml, timeout, mock=False):
+        self.database_table = database_table
+        self.sensor_yaml = sensor_yaml
+        self.timeout = timeout
+        self.log_data = not mock
+        self.max_iterations = None  # run indefinitely by default
+        self.mock = None
+
+        assert path.exists(args.sensors), 'Sensor map not found: %s' % sensor_yaml
+        self.sensor_map = None
+        self.sensor_map_last_change = -1
+        print('Sensors:')
+        for mac in sorted(self.get_sensors()):
+            print('\t', mac, '<-->', self.sensor_map[mac])
+
+        if mock:
+            import sensor_mock
+            self.mock = sensor_mock.SensorMock()
+            self._mock_time = self.mock.mock_time_generator()
+            self._mock_datas = self.mock.mock_data_generator()
+            self.max_iterations = self.mock.max_iter
+
+    def get_sensors(self):
+        if path.getmtime(self.sensor_yaml) != self.sensor_map_last_change:
+            print('reloading sensor map as file changed')
+            self.sensor_map = yaml.load(open(self.sensor_yaml))
+            self.sensor_map_last_change = path.getmtime(self.sensor_yaml)
+        return self.sensor_map
+
+    def collect_and_store(self):
+        if self.mock:
+            sensors = self.mock.mac_to_name
+            t = next(self._mock_time)
+            datas = next(self._mock_datas)
+        else:
+            sensors = self.get_sensors()
+            t = datetime.now()
+            datas = RuuviTagSensor.get_data_for_sensors(sensors, int(self.timeout))
+        t_str = t.strftime('%Y-%m-%d %H:%M:%S')
+        for mac in sensors:
+            record = {'sensor_MAC': mac,
+                      'sensor_name': sensors[mac],
+                      'timestamp': t_str,
+                      'year': t.year,
+                      'month': t.month,
+                      'day': t.day}
+            if mac in datas:
+                record.update(datas[mac])
+            if self.log_data:
+                print(t, record)
+            self.database_table.insert(record)
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):
@@ -73,44 +105,42 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--discover', action='store_true', help='print a list of Ruuvi MACs, whenever a new one is discovered')
-    parser.add_argument('--flood', action='store_true', help='print sensor readout of all discovered Ruuvis')
-    parser.add_argument('--mock', action='store_true', help='generate a database of mock sensor values')
-    parser.add_argument('--interval', default=60, help='sensor readout interval (seconds), default 60')
+    parser.add_argument('--discover', action='store_true',
+                        help='print a list of Ruuvi MACs, whenever a new one is discovered')
+    parser.add_argument('--flood', action='store_true',
+                        help='print sensor readout of all discovered Ruuvis')
+    parser.add_argument('--mock', action='store_true',
+                        help='generate a database of mock sensor values')
+    parser.add_argument('--interval', default=60,
+                        help='sensor readout interval (seconds), default 60')
+    parser.add_argument('--sensors', default='sensors.yml',
+                        help='YAML file mapping sensor MACs to names, default "sensors.yml"')
     args = parser.parse_args()
 
     if args.discover:
         discover_sensors()
+        exit()
 
     elif args.flood:
         flood_data()
+        exit()
 
-    elif args.mock:
-        from sensor_mock import SensorMock
-
+    if args.mock:
         interval = 0
         db_name = 'sqlite:///measurements-mock.db'
-        mac_to_name = {'dummy_mac_1': 'First',
-                       'dummy_mac_2': 'Second',
-                       'dummy_mac_3': 'Third'}
-        sensor_mock = SensorMock(mac_to_name)
-        max_iter = sensor_mock.max_iter
-        mock_time = sensor_mock.mock_time_generator()
-        mock_datas = sensor_mock.mock_data_generator()
-        get_datas = lambda: next(mock_datas)
-        get_time = lambda: next(mock_time)
 
     else:
-        interval = args.interval
+        interval = int(args.interval)
         db_name = 'sqlite:///measurements.db'
-        mac_to_name = config.mac_to_name
-        max_iter = None
-        get_time = datetime.datetime.now
-        get_datas = lambda: RuuviTagSensor.get_data_for_sensors(mac_to_name, interval * 0.75)
 
     db = dataset.connect(db_name)
     measurements = db['measurements']
 
+    collector = DataCollector(database_table=measurements,
+                              sensor_yaml=args.sensors,
+                              timeout=args.interval * 0.75,
+                              mock=args.mock)
+
     repeat(interval,
-           max_iter,
-           func=lambda: collect_and_store(mac_to_name, get_datas, get_time, log_data=not args.mock))
+           collector.max_iterations,
+           func=lambda: collector.collect_and_store())

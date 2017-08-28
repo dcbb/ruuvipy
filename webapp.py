@@ -42,7 +42,6 @@ def sql_date_filter(filter_type):
     else:
         raise ValueError('Filter unit in {filter_type} not recognized.'.format(filter_type=filter_type))
     print('using offset', offset)
-    # TODO replace date with 'now'
     return "datetime(t) >= datetime('now', '{offset}')".format(offset=offset)
 
 

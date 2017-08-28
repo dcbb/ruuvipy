@@ -3,12 +3,14 @@ import numpy as np
 
 
 class SensorMock:
-    def __init__(self, mac_to_name):
+    def __init__(self):
         self.mock_sample_period = 1  # minutes
         self.mock_samples_per_day = (24 * 60) / self.mock_sample_period
         self.mock_days = 21
         self.max_iter = self.mock_days * self.mock_samples_per_day
-        self.mac_to_name = mac_to_name
+        self.mac_to_name = {'dummy_mac_1': 'First',
+                            'dummy_mac_2': 'Second',
+                            'dummy_mac_3': 'Third'}
 
     def mock_timeseries(self, n, day_mid, day_range, largescale_range):
         def largescale_variation(scale=60, base=7):
@@ -69,4 +71,3 @@ class SensorMock:
                          'pressure': pressure[mac][i],
                          'temperature': temp[mac][i],
                          'humidity': humidity[mac][i]} for mac in self.mac_to_name}
-

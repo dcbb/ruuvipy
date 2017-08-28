@@ -62,27 +62,20 @@ class DataCollector:
         if len(datas) == 0:
             return
 
-        t_str = t.strftime('%Y-%m-%d %H:%M:%S')
+        # t_str = t.strftime('%Y-%m-%d %H:%M:%S')
 
+        # TODO get a correct time string! this is the source of all the trouble!
         json_body = [
             {
                 'measurement': 'ruuvi',
                 'tags': {
                     'sensor': sensors[mac],
                 },
-                'time': t_str,
+                # 'time': t_str,
                 'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
             }
             for mac in sensors
-        ]  #
-        json_body.append({
-            'measurement': 'ruuvi',
-            'tags': {
-                'sensor': 'DUMMY',
-            },
-            'time': t_str,
-            'fields': {'temperature': np.random.normal(scale=10), 'pressure': np.random.normal(scale=100)}  # datas[mac]
-        })
+        ]
 
         if not self.influx_client.write_points(json_body):
             print('not written!')

@@ -74,7 +74,7 @@ class DataCollector:
                 'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
             }
             for mac in sensors
-        ]
+        ]  #
         json_body.append({
             'measurement': 'ruuvi',
             'tags': {

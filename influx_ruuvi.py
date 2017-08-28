@@ -97,7 +97,7 @@ if __name__ == '__main__':
     port = 8086
     user = 'admin'
     password = 'admin'
-    dbname = 'first'
+    dbname = 'sensors'
 
     import argparse
 

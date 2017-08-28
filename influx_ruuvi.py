@@ -36,18 +36,18 @@ class DataCollector:
         return self.sensor_map
 
     def collect_and_store(self):
-        # metrics = ['battery',
-        #            'pressure',
-        #            'humidity',
-        #            'acceleration',
-        #            'acceleration_x',
-        #            'acceleration_y',
-        #            'acceleration_z',
-        #            'temperature']
-        metrics = ['pressure',
+        metrics = ['battery',
+                   'pressure',
                    'humidity',
-                   'temperature',
-                   'battery']
+                   'acceleration',
+                   'acceleration_x',
+                   'acceleration_y',
+                   'acceleration_z',
+                   'temperature']
+        # metrics = ['pressure',
+        #            'humidity',
+        #            'temperature',
+        #            'battery']
 
         if self.mock:
             sensors = self.mock.mac_to_name

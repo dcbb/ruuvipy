@@ -42,7 +42,6 @@ class DataCollector:
         self.max_iterations = None  # run indefinitely by default
         self.mock = None
 
-        assert path.exists(args.sensors), 'Sensor map not found: %s' % sensor_yaml
         self.sensor_map = None
         self.sensor_map_last_change = -1
         print('Sensors:')
@@ -51,12 +50,13 @@ class DataCollector:
 
         if mock:
             import sensor_mock
-            self.mock = sensor_mock.SensorMock()
+            self.mock = sensor_mock.SensorMock(mock_days=62)
             self._mock_time = self.mock.mock_time_generator()
             self._mock_datas = self.mock.mock_data_generator()
             self.max_iterations = self.mock.max_iter
 
     def get_sensors(self):
+        assert path.exists(self.sensor_yaml), 'Sensor map not found: %s' % self.sensor_yaml
         if path.getmtime(self.sensor_yaml) != self.sensor_map_last_change:
             print('reloading sensor map as file changed')
             self.sensor_map = yaml.load(open(self.sensor_yaml))
@@ -134,9 +134,9 @@ if __name__ == '__main__':
         db_name = 'sqlite:///measurements.db'
 
     db = dataset.connect(db_name)
-    measurements = db['measurements']
+    measurements_table = db['measurements']
 
-    collector = DataCollector(database_table=measurements,
+    collector = DataCollector(database_table=measurements_table,
                               sensor_yaml=args.sensors,
                               timeout=args.interval * 0.75,
                               mock=args.mock)

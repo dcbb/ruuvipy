@@ -3,10 +3,10 @@ import numpy as np
 
 
 class SensorMock:
-    def __init__(self):
+    def __init__(self, mock_days):
         self.mock_sample_period = 1  # minutes
         self.mock_samples_per_day = (24 * 60) / self.mock_sample_period
-        self.mock_days = 21
+        self.mock_days = mock_days
         self.max_iter = self.mock_days * self.mock_samples_per_day
         self.mac_to_name = {'dummy_mac_1': 'First',
                             'dummy_mac_2': 'Second',

@@ -93,11 +93,6 @@ def repeat(interval_sec, max_iter, func, *args, **kwargs):
 
 
 if __name__ == '__main__':
-    host = 'localhost'
-    port = 8086
-    user = 'admin'
-    password = 'admin'
-    dbname = 'sensors'
 
     import argparse
 
@@ -129,11 +124,16 @@ if __name__ == '__main__':
         interval = int(args.interval)
 
     # Create the InfluxDB object
-    client = InfluxDBClient(host, port, user, password, dbname)
+    influx_config = yaml.load(open('influx_config.yml'))
+    client = InfluxDBClient(influx_config['host'],
+                            influx_config['port'],
+                            influx_config['user'],
+                            influx_config['password'],
+                            influx_config['dbname'])
 
     collector = DataCollector(influx_client=client,
                               sensor_yaml='sensors.yml',
-                              timeout=int(0.75*interval),
+                              timeout=int(0.75 * interval),
                               mock=args.mock,
                               mock_days=args.mock_days)
     repeat(interval,

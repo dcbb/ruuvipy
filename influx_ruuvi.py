@@ -81,7 +81,7 @@ class DataCollector:
                 'sensor': 'DUMMY',
             },
             'time': t_str,
-            'fields': {metric: np.random.normal() for metric in metrics}  # datas[mac]
+            'fields': {metric: int(np.random.normal(scale=50)) for metric in metrics}  # datas[mac]
         })
 
         if not self.influx_client.write_points(json_body):

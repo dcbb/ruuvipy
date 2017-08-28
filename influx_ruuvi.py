@@ -58,6 +58,9 @@ class DataCollector:
             t = datetime.now()
             datas = RuuviTagSensor.get_data_for_sensors(sensors, int(self.timeout))
 
+        if len(datas) == 0:
+            return
+
         t_str = t.strftime('%Y-%m-%d %H:%M:%S')
 
         json_body = [

@@ -6,16 +6,33 @@ import time
 import datetime
 import config
 
-print('running, Python version', sys.version)
 
-if False:
+# TODO: put name mac in a YAML file, reload every N ticks so we dont have to restart the server when we have a new sensor
+
+
+def discover_sensors():
+    seen_macs = set()
+    n_macs_seen = 0
+
+    def handle_data(data_list):
+        global n_macs_seen
+        mac, data = data_list
+        seen_macs.add(mac)
+        if len(seen_macs) != n_macs_seen:
+            n_macs_seen = len(seen_macs)
+            print('Seeing RUUVI MACS:')
+            print('\n'.join(sorted(seen_macs)))
+
+    RuuviTagSensor.get_datas(handle_data)
+
+
+def flood_data():
     def handle_data(data_list):
         mac, data = data_list
-        record = {'MAC': mac, 'timestamp': datetime.now()}
+        record = {'MAC': mac, 'timestamp': datetime.datetime.now()}
         record.update(data)
         print(record)
         print()
-
 
     RuuviTagSensor.get_datas(handle_data)
 
@@ -56,11 +73,19 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--discover', action='store_true', help='print a list of Ruuvi MACs, whenever a new one is discovered')
+    parser.add_argument('--flood', action='store_true', help='print sensor readout of all discovered Ruuvis')
     parser.add_argument('--mock', action='store_true', help='generate a database of mock sensor values')
     parser.add_argument('--interval', default=60, help='sensor readout interval (seconds), default 60')
     args = parser.parse_args()
 
-    if args.mock:
+    if args.discover:
+        discover_sensors()
+
+    elif args.flood:
+        flood_data()
+
+    elif args.mock:
         from sensor_mock import SensorMock
 
         interval = 0
@@ -74,13 +99,14 @@ if __name__ == '__main__':
         mock_datas = sensor_mock.mock_data_generator()
         get_datas = lambda: next(mock_datas)
         get_time = lambda: next(mock_time)
+
     else:
         interval = args.interval
         db_name = 'sqlite:///measurements.db'
         mac_to_name = config.mac_to_name
         max_iter = None
         get_time = datetime.datetime.now
-        get_datas = lambda: RuuviTagSensor.get_data_for_sensors(mac_to_name, interval*0.75)
+        get_datas = lambda: RuuviTagSensor.get_data_for_sensors(mac_to_name, interval * 0.75)
 
     db = dataset.connect(db_name)
     measurements = db['measurements']

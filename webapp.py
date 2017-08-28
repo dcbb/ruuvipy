@@ -102,7 +102,7 @@ def render_data_ui(sql,
 
     time_range = request.args.get('range')
     if not time_range:
-        time_range = '3d'
+        time_range = config.default_timerange
 
     timer.reset('STARTING...')
     db_name = os.getenv('RUUVI_DB', default='sqlite:///measurements-mock.db')

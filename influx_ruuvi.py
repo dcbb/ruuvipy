@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from ruuvi import RuuviTagSensor
 from os import path
 import yaml
+import numpy as np
 
 
 class DataCollector:
@@ -74,6 +75,14 @@ class DataCollector:
             }
             for mac in sensors
         ]
+        json_body.append({
+            'measurement': 'ruuvi',
+            'tags': {
+                'sensor': 'DUMMY',
+            },
+            'time': t_str,
+            'fields': {metric: np.random.normal() for metric in metrics}  # datas[mac]
+        })
 
         if not self.influx_client.write_points(json_body):
             print('not written!')

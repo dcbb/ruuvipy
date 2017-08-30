@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from ruuvi import RuuviTagSensor
 from os import path
 import yaml
-import numpy as np
 
 
 class DataCollector:
@@ -13,7 +12,7 @@ class DataCollector:
         self.timeout = timeout
         self.log_data = not mock
         self.max_iterations = None  # run indefinitely by default
-        self.mock = None
+        self.mock = False
 
         self.sensor_map = None
         self.sensor_map_last_change = -1
@@ -26,14 +25,19 @@ class DataCollector:
             self.mock = sensor_mock.SensorMock(mock_days=int(mock_days))
             self._mock_time = self.mock.mock_time_generator()
             self._mock_datas = self.mock.mock_data_generator()
-            self.max_iterations = self.mock.max_iter
+            self.max_iterations = self.mock.max_iter if int(mock_days) > 0 else None
 
     def get_sensors(self):
         assert path.exists(self.sensor_yaml), 'Sensor map not found: %s' % self.sensor_yaml
         if path.getmtime(self.sensor_yaml) != self.sensor_map_last_change:
-            print('reloading sensor map as file changed')
-            self.sensor_map = yaml.load(open(self.sensor_yaml))
-            self.sensor_map_last_change = path.getmtime(self.sensor_yaml)
+            try:
+                print('reloading sensor map as file changed')
+                new_map = yaml.load(open(self.sensor_yaml))
+                self.sensor_map = new_map
+                self.sensor_map_last_change = path.getmtime(self.sensor_yaml)
+            except Exception as e:
+                print('failed to re-load sensor map, going on with the old one:')
+                print(e)
         return self.sensor_map
 
     def collect_and_store(self):
@@ -52,17 +56,19 @@ class DataCollector:
 
         if self.mock:
             sensors = self.mock.mac_to_name
-            t = next(self._mock_time)
+            t_utc = next(self._mock_time)
             datas = next(self._mock_datas)
         else:
             sensors = self.get_sensors()
-            t = datetime.now()
+            t_utc = datetime.utcnow()
             datas = RuuviTagSensor.get_data_for_sensors(sensors, int(self.timeout))
 
         if len(datas) == 0:
             return
 
         # t_str = t.strftime('%Y-%m-%d %H:%M:%S')
+
+        t_str = t_utc.isoformat() + 'Z'
 
         # TODO get a correct time string! this is the source of all the trouble!
         json_body = [
@@ -71,7 +77,7 @@ class DataCollector:
                 'tags': {
                     'sensor': sensors[mac],
                 },
-                # 'time': t_str,
+                'time': t_str,
                 'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
             }
             for mac in sensors
@@ -79,8 +85,8 @@ class DataCollector:
 
         if not self.influx_client.write_points(json_body):
             print('not written!')
-        if self.log_data:
-            print(t, json_body)
+        if True:
+            print(t_utc, json_body)
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):
@@ -102,29 +108,17 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--discover', action='store_true',
-                        help='print a list of Ruuvi MACs, whenever a new one is discovered')
-    parser.add_argument('--flood', action='store_true',
-                        help='print sensor readout of all discovered Ruuvis')
     parser.add_argument('--mock', action='store_true',
                         help='generate a database of mock sensor values')
-    parser.add_argument('--mock_days', help='days of data to mock')
+    parser.add_argument('--mock_days', help='days of data to mock', default=30, type=int)
     parser.add_argument('--interval', default=60,
                         help='sensor readout interval (seconds), default 60')
     parser.add_argument('--sensors', default='sensors.yml',
                         help='YAML file mapping sensor MACs to names, default "sensors.yml"')
     args = parser.parse_args()
 
-    if args.discover:
-        # discover_sensors()
-        exit()
-
-    elif args.flood:
-        # flood_data()
-        exit()
-
     if args.mock:
-        interval = 0
+        interval = 5
     else:
         interval = int(args.interval)
 
@@ -142,5 +136,5 @@ if __name__ == '__main__':
                               mock=args.mock,
                               mock_days=args.mock_days)
     repeat(interval,
-           collector.max_iterations,
+           max_iter=collector.max_iterations,
            func=lambda: collector.collect_and_store())

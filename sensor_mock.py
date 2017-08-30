@@ -13,30 +13,40 @@ class SensorMock:
                             'dummy_mac_3': 'Third'}
 
     def mock_timeseries(self, n, day_mid, day_range, largescale_range):
-        def largescale_variation(scale=60, base=7):
-            B = np.array(
-                [np.cos((x / (scale * self.mock_samples_per_day) * 2 * np.pi) * np.random.normal(loc=1, scale=0.3)) for
-                 _ in
-                 range(base)])
-            v = B.T.dot(2 * np.random.random(size=base) - 1)
-            return v / abs(v).max()
+        if self.mock_days < 0:
+            # simple random walk for "real time" mock
+            return np.random.normal(loc=day_mid, scale=day_range, size=1000)
+        else:
+            def largescale_variation(scale=60, base=7):
+                B = np.array(
+                    [np.cos((x / (scale * self.mock_samples_per_day) * 2 * np.pi) * np.random.normal(loc=1, scale=0.3))
+                     for
+                     _ in
+                     range(base)])
+                v = B.T.dot(2 * np.random.random(size=base) - 1)
+                return v / abs(v).max()
 
-        def map_to_range(x, mid, half_width):
-            return x * half_width + mid
+            def map_to_range(x, mid, half_width):
+                return x * half_width + mid
 
-        x = np.arange(n)
-        day_scale = np.sin(x / self.mock_samples_per_day * 2 * np.pi)
-        y = map_to_range(day_scale, mid=day_mid, half_width=day_range / 2) \
-            + map_to_range(largescale_variation(), mid=0, half_width=largescale_range / 2)
-        return y
+            x = np.arange(n)
+            day_scale = np.sin(x / self.mock_samples_per_day * 2 * np.pi)
+            y = map_to_range(day_scale, mid=day_mid, half_width=day_range / 2) \
+                + map_to_range(largescale_variation(), mid=0, half_width=largescale_range / 2)
+            return y
 
     def mock_time_generator(self):
-        delta_t = timedelta(minutes=self.mock_sample_period)
-        now = datetime.now() - timedelta(days=self.mock_days)
-        t = now  # datetime.datetime(year=now.year, month=now.month, day=now.day, hour=6)
-        while True:
-            yield t
-            t += delta_t
+        if self.mock_days < 0:
+            # real-time mode
+            while True:
+                yield datetime.utcnow()
+        else:
+            delta_t = timedelta(minutes=self.mock_sample_period)
+            now = datetime.utcnow() - timedelta(days=self.mock_days)
+            t = now  # datetime.datetime(year=now.year, month=now.month, day=now.day, hour=6)
+            while True:
+                yield t
+                t += delta_t
 
     def mock_data_generator(self):
         """
@@ -44,7 +54,7 @@ class SensorMock:
         """
         from itertools import count, cycle
 
-        n = self.max_iter
+        n = self.max_iter if self.mock_days > 0 else 1000
         temp = {
             mac: self.mock_timeseries(int(n),
                                       day_mid=15 + np.random.normal(scale=5),

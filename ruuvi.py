@@ -8,17 +8,20 @@ from os import path
 
 def discover_sensors():
     seen_macs = set()
-    n_macs_last_seen = 0
+    n_macs_last_seen = [0]
+    sensor_names = yaml.load(open('sensors.yml')) if path.exists('sensors.yml') else {}
 
     def handle_data(data_list):
-        global n_macs_last_seen
         mac, data = data_list
         seen_macs.add(mac)
-        if len(seen_macs) != n_macs_last_seen:
-            n_macs_last_seen = len(seen_macs)
-            print('Seeing RUUVI MACS:')
-            print('\n'.join(sorted(seen_macs)))
+        if len(seen_macs) != n_macs_last_seen[0]:
+            n_macs_last_seen[0] = len(seen_macs)
+            print()
+            print('Seeing Ruuvi MACS:')
+            for mac in sorted(seen_macs):
+                print('mac <<>> %s' % sensor_names[mac] if mac in sensor_names else '%s (!)' % mac)
 
+    print('Looking for Ruuvi tags...')
     RuuviTagSensor.get_datas(handle_data)
 
 
@@ -30,6 +33,7 @@ def flood_data():
         print(record)
         print()
 
+    print('Flooding console with Ruuvi tag data...')
     RuuviTagSensor.get_datas(handle_data)
 
 

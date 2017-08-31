@@ -80,11 +80,11 @@ class DataCollector:
                 'time': t_str,
                 'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
             }
-            for mac in sensors
+            for mac in sensors if mac in datas
         ]
-
-        if not self.influx_client.write_points(json_body):
-            print('not written!')
+        if len(json_body) > 0:
+            if not self.influx_client.write_points(json_body):
+                print('not written!')
         if True:
             print(t_utc, json_body)
 

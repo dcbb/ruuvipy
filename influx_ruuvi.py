@@ -31,12 +31,12 @@ class DataCollector:
         assert path.exists(self.sensor_yaml), 'Sensor map not found: %s' % self.sensor_yaml
         if path.getmtime(self.sensor_yaml) != self.sensor_map_last_change:
             try:
-                print('reloading sensor map as file changed')
+                print('Reloading sensor map as file changed')
                 new_map = yaml.load(open(self.sensor_yaml))
                 self.sensor_map = new_map
                 self.sensor_map_last_change = path.getmtime(self.sensor_yaml)
             except Exception as e:
-                print('failed to re-load sensor map, going on with the old one:')
+                print('Failed to re-load sensor map, going on with the old one. Error:')
                 print(e)
         return self.sensor_map
 
@@ -49,10 +49,6 @@ class DataCollector:
                    'acceleration_y',
                    'acceleration_z',
                    'temperature']
-        # metrics = ['pressure',
-        #            'humidity',
-        #            'temperature',
-        #            'battery']
 
         if self.mock:
             sensors = self.mock.mac_to_name
@@ -66,11 +62,9 @@ class DataCollector:
         if len(datas) == 0:
             return
 
-        # t_str = t.strftime('%Y-%m-%d %H:%M:%S')
-
         t_str = t_utc.isoformat() + 'Z'
 
-        print('sensors seen:', list(datas.keys()))
+        print('Sensors seen:', list(datas.keys()))
         json_body = [
             {
                 'measurement': 'ruuvi',
@@ -78,17 +72,17 @@ class DataCollector:
                     'sensor': sensors[mac],
                 },
                 'time': t_str,
-                'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
+                'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}
             }
             for mac in datas if mac in sensors
         ]
         if len(json_body) > 0:
             if not self.influx_client.write_points(json_body):
-                print('not written!')
+                print('Data not written!')
             else:
                 print(t_utc, json_body)
         else:
-            print(t_utc, 'no data')
+            print(t_utc, 'No data collected!')
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):
@@ -97,8 +91,12 @@ def repeat(interval_sec, max_iter, func, *args, **kwargs):
     starttime = time.time()
     for i in count():
         if i % 1000 == 0:
-            print('collected %d samples' % i)
-        func(*args, **kwargs)
+            print('Collected %d samples' % i)
+        try:
+            func(*args, **kwargs)
+        except Exception as ex:
+            print('Error!')
+            print(ex)
         if interval_sec > 0:
             time.sleep(interval_sec - ((time.time() - starttime) % interval_sec))
         if max_iter and i >= max_iter:

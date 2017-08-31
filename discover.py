@@ -17,7 +17,7 @@ def discover_sensors():
             print()
             print('Seeing Ruuvi MACS:')
             for mac in sorted(seen_macs):
-                print('mac <<>> %s' % sensor_names[mac] if mac in sensor_names else '%s (!)' % mac)
+                print('%s <<>> %s' % (mac, sensor_names[mac]) if mac in sensor_names else '%s (!)' % mac)
 
     print('Looking for Ruuvi tags...')
     RuuviTagSensor.get_datas(handle_data)

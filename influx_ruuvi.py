@@ -70,7 +70,7 @@ class DataCollector:
 
         t_str = t_utc.isoformat() + 'Z'
 
-        # TODO get a correct time string! this is the source of all the trouble!
+        print('sensors seen:', list(datas.keys()))
         json_body = [
             {
                 'measurement': 'ruuvi',
@@ -80,13 +80,15 @@ class DataCollector:
                 'time': t_str,
                 'fields': {metric: datas[mac][metric] for metric in metrics if metric in datas[mac]}  # datas[mac]
             }
-            for mac in sensors if mac in datas
+            for mac in datas if mac in sensors
         ]
         if len(json_body) > 0:
             if not self.influx_client.write_points(json_body):
                 print('not written!')
-        if True:
-            print(t_utc, json_body)
+            else:
+                print(t_utc, json_body)
+        else:
+            print(t_utc, 'no data')
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):

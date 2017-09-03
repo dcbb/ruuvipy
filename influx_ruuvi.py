@@ -57,14 +57,21 @@ class DataCollector:
         else:
             sensors = self.get_sensors()
             t_utc = datetime.utcnow()
-            datas = RuuviTagSensor.get_data_for_sensors(sensors, int(self.timeout))
-
-        if len(datas) == 0:
-            return
+            datas = RuuviTagSensor.get_data_for_sensors(macs=[], search_duratio_sec=int(self.timeout))
 
         t_str = t_utc.isoformat() + 'Z'
+        print('\n' + t_str)
 
-        print('Sensors seen:', list(datas.keys()))
+        if len(datas) == 0:
+            print('No data from sensors.')
+            return
+
+        for mac in datas:
+            if mac in sensors:
+                print('Seeing sensor %s (%s).' % (sensors[mac], mac))
+            else:
+                print('MAC not in sensors.yml: ' + mac)
+
         json_body = [
             {
                 'measurement': 'ruuvi',
@@ -80,9 +87,9 @@ class DataCollector:
             if not self.influx_client.write_points(json_body):
                 print('Data not written!')
             else:
-                print(t_utc, json_body)
+                print('Data written for %d sensors.' % len(json_body))
         else:
-            print(t_utc, 'No data collected!')
+            print(t_utc, 'No data sent.')
 
 
 def repeat(interval_sec, max_iter, func, *args, **kwargs):
